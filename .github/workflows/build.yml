@@ -10,6 +10,11 @@ name: X30E Pro source build
         type: boolean
         required: true
         default: true
+      publish_release:
+        description: Publish the successful build as a GitHub Release
+        type: boolean
+        required: true
+        default: false
   schedule:
     - cron: '0 3 * * 0'
 
@@ -67,3 +72,31 @@ jobs:
             bin/targets/mediatek/filogic/immortalwrt-*-ruijie_rg-x30e-pro-validation.json
             bin/targets/mediatek/filogic/immortalwrt-*-ruijie_rg-x30e-pro.manifest
             bin/targets/mediatek/filogic/sha256sums
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(
+            bin/targets/mediatek/filogic/immortalwrt-*-ruijie_rg-x30e-pro-squashfs-factory.bin
+            bin/targets/mediatek/filogic/immortalwrt-*-ruijie_rg-x30e-pro-squashfs-sysupgrade.bin
+            bin/targets/mediatek/filogic/immortalwrt-*-ruijie_rg-x30e-pro-validation.json
+            bin/targets/mediatek/filogic/immortalwrt-*-ruijie_rg-x30e-pro.manifest
+            bin/targets/mediatek/filogic/sha256sums
+          )
+          if (( ${#files[@]} < 5 )); then
+            echo "Expected release images and validation files are missing" >&2
+            exit 1
+          fi
+
+          source_sha="$(git rev-parse HEAD)"
+          short_sha="${source_sha:0:7}"
+          tag="x30e-pro-build-${GITHUB_RUN_NUMBER}-${short_sha}"
+          gh release create "$tag" "${files[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$source_sha" \
+            --title "Ruijie X30E Pro ImmortalWrt build ${GITHUB_RUN_NUMBER}" \
+            --generate-notes

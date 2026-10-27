@@ -43,6 +43,6 @@ Resolve any conflicts as ordinary source changes, run the local build and checks
 
 ## GitHub Actions
 
-`.github/workflows/build.yml` builds on pushes to `openwrt-25.12`, on demand, and weekly. A scheduled run merges ImmortalWrt `openwrt-25.12` before building; a manual run offers the same option. A merge conflict stops the job without overwriting the local adaptation. Successful runs upload factory/sysupgrade images, the manifest, checksums, and validation report as a 30-day Actions artifact.
+`.github/workflows/build.yml` builds on pushes to `openwrt-25.12`, on demand, and weekly. A scheduled run merges ImmortalWrt `openwrt-25.12` before building; a manual run offers the same option. A merge conflict stops the job without overwriting the local adaptation. Successful runs upload factory/sysupgrade images, the manifest, checksums, and validation report as a 30-day Actions artifact. For a manual run, enable **Publish the successful build as a GitHub Release** to also create a versioned GitHub Release with those files attached. Release publishing is opt-in; push and scheduled builds only upload artifacts.
 
 The Actions build is a convenience and independent build check. Local source builds remain the primary validation path for this device. An offline image check cannot replace a hardware boot test.
