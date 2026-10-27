@@ -1,0 +1,23 @@
+#!/bin/sh
+
+[ "$ACTION" = "add" ] || exit 0
+
+case "$DEVICENAME" in
+	phy*-ap*) ;;
+	*) exit 0 ;;
+esac
+
+(
+	bridge_port="/sys/class/net/br-lan/brif/$DEVICENAME"
+	tries=0
+
+	while [ "$tries" -lt 20 ] && [ ! -e "$bridge_port" ]; do
+		sleep 1
+		tries=$((tries + 1))
+	done
+
+	[ -e "$bridge_port" ] || exit 0
+	/etc/init.d/firewall reload
+) </dev/null >/dev/null 2>&1 &
+
+exit 0

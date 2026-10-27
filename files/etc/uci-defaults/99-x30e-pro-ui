@@ -1,0 +1,6 @@
+#!/bin/sh
+# Use official-repository Argon and Simplified Chinese by default.
+uci -q set luci.main.mediaurlbase='/luci-static/argon'
+uci -q set luci.main.lang='zh_cn'
+uci -q commit luci
+exit 0

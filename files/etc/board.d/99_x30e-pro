@@ -1,0 +1,17 @@
+#!/bin/sh
+# Board-only additions; calibration and MACs stay on this router's NAND.
+. /lib/functions.sh
+. /lib/functions/system.sh
+. /lib/functions/uci-defaults.sh
+
+case "$(board_name)" in
+ruijie,rg-x30e-pro)
+    board_config_update
+    label_mac="$(mtd_get_mac_ascii product_info ethaddr)"
+    if [ -n "$label_mac" ]; then
+        ucidef_set_interface_macaddr "wan" "$label_mac"
+    fi
+    board_config_flush
+    ;;
+esac
+exit 0

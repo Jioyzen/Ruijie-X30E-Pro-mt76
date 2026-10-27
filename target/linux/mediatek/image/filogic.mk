@@ -3226,6 +3226,30 @@ define Device/ruijie_rg-x60-pro
 endef
 TARGET_DEVICES += ruijie_rg-x60-pro
 
+define Build/x30e-pro-ubi-reserve
+	python3 $(TOPDIR)/scripts/x30e-pro-fix-ubi.py $@
+endef
+
+define Device/ruijie_rg-x30e-pro
+  DEVICE_VENDOR := Ruijie
+  DEVICE_MODEL := RG-X30E Pro
+  DEVICE_VARIANT := NMBM combined UBI layout
+  DEVICE_DTS := mt7981b-ruijie-rg-x30e-pro
+  DEVICE_DTS_DIR := ../dts
+  SUPPORTED_DEVICES := ruijie,rg-x30e-pro
+  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware \
+    kmod-br-netfilter -bridger
+  UBINIZE_OPTS := -E 5
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  IMAGE_SIZE := 114176k
+  KERNEL_IN_UBI := 1
+  IMAGES := factory.bin sysupgrade.bin
+  IMAGE/factory.bin := append-ubi | x30e-pro-ubi-reserve | check-size $$$$(IMAGE_SIZE)
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+endef
+TARGET_DEVICES += ruijie_rg-x30e-pro
+
 define Device/snr_snr-cpe-ax2
   DEVICE_VENDOR := SNR
   DEVICE_MODEL := SNR-CPE-AX2

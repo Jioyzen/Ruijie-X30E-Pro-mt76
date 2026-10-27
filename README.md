@@ -1,5 +1,9 @@
 <img src="https://avatars.githubusercontent.com/u/53193414?s=200&v=4" alt="logo" width="200" height="200" align="right">
 
+# Ruijie RG-X30E Pro support
+
+This repository also carries a full-source ImmortalWrt 25.12 device adaptation for the Ruijie RG-X30E Pro. See [README-X30E-PRO.md](README-X30E-PRO.md) for build instructions, device details, upstream integration, and GitHub Actions behavior.
+
 # Project ImmortalWrt
 
 ImmortalWrt is a fork of [OpenWrt](https://openwrt.org), with more packages ported, more devices supported, default optimized profiles and localization modifications for mainland China users.<br/>

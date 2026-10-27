@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-2.0-or-later OR BSD-2-Clause
+
+x30e_fix_ubi_reserve() {
+	local reserved
+	local target=750
+
+	[ -r /sys/class/ubi/ubi0_2/reserved_ebs ] || return 0
+	reserved="$(cat /sys/class/ubi/ubi0_2/reserved_ebs)"
+	case "$reserved" in
+		''|*[!0-9]*)
+			echo "Cannot read rootfs_data reserved LEB count: $reserved" >&2
+			return 1
+			;;
+	esac
+
+	[ "$reserved" -gt "$target" ] || return 0
+	echo "Shrinking X30E Pro rootfs_data from $reserved to $target LEBs before mount_root"
+	ubirmvol /dev/ubi0 -n 2 || return 1
+	ubimkvol /dev/ubi0 -n 2 -N rootfs_data -S "$target" || return 1
+	sync
+}
+
+boot_hook_add preinit_main x30e_fix_ubi_reserve

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Let br-lan traffic reach fw4's inet flowtable so the MTK PPE offload path
+# can learn established Layer-2 bridge flows.
+[ "$ACTION" = "ifup" ] || exit 0
+[ "$INTERFACE" = "lan" ] || exit 0
+
+bridge=/sys/devices/virtual/net/br-lan/bridge
+[ -d "$bridge" ] || exit 0
+
+echo 1 > "$bridge/nf_call_iptables" 2>/dev/null
+echo 1 > "$bridge/nf_call_ip6tables" 2>/dev/null
+
+exit 0
