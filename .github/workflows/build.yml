@@ -1,6 +1,6 @@
 name: X30E Pro source build
 
-on:
+"on":
   push:
     branches: [openwrt-25.12]
   workflow_dispatch:
