@@ -65,6 +65,9 @@ with tempfile.TemporaryDirectory() as tempdir:
     assert b'nf_call_iptables' in bridge_hook and b'nf_call_ip6tables' in bridge_hook
     flowtable_hook = image_file("etc/hotplug.d/net/99-x30e-flowtable-refresh")
     assert b'phy*-ap*' in flowtable_hook and b'/etc/init.d/firewall reload' in flowtable_hook
+    wifi_script = image_file("lib/netifd/wireless/mac80211.sh")
+    assert b'config.txantenna != 0xffffffff || config.rxantenna != 0xffffffff' in wifi_script
+    assert b'iw phy ${phy} set antenna ${config.txantenna} ${config.rxantenna}' in wifi_script
     upgrade_script = image_file("lib/upgrade/platform.sh")
     assert b"ruijie,rg-x30e-pro" in upgrade_script
     assert b'CI_UBIPART="ubi"' in upgrade_script

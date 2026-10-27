@@ -99,7 +99,10 @@ function setup_phy(phy, config, data) {
 		config.txpower = 'auto';
 
 	log(`Configuring '${phy}' txantenna: ${config.txantenna}, rxantenna: ${config.rxantenna} distance: ${config.distance}`);
-	system(`iw phy ${phy} set antenna ${config.txantenna} ${config.rxantenna}`);
+	/* The all-antennas default is already selected by the driver. Some
+	 * drivers reject an explicit 0xffffffff mask with EOPNOTSUPP. */
+	if (config.txantenna != 0xffffffff || config.rxantenna != 0xffffffff)
+		system(`iw phy ${phy} set antenna ${config.txantenna} ${config.rxantenna}`);
 	system(`iw phy ${phy} set distance ${config.distance}`);
 	system(`iw phy ${phy} set txpower ${config.txpower}`);
 
