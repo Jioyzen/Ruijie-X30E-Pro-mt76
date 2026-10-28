@@ -78,6 +78,9 @@ with tempfile.TemporaryDirectory() as tempdir:
     upgrade_script = image_file("lib/upgrade/platform.sh")
     assert b"ruijie,rg-x30e-pro" in upgrade_script
     assert b'CI_UBIPART="ubi"' in upgrade_script
+    assert b'CI_ROOTFS_DATA_MAX=95232000' in upgrade_script
+    nand_script = image_file("lib/upgrade/nand.sh")
+    assert b'CI_ROOTFS_DATA_MAX' in nand_script
 
 manifest = OUT / f"{PREFIX}.manifest"
 packages = manifest.read_text().splitlines()

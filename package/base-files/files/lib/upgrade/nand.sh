@@ -185,6 +185,12 @@ nand_upgrade_prepare_ubi() {
 	local rootfs_type="$2"
 	local rootfs_data_max="$(fw_printenv -n rootfs_data_max 2> /dev/null)"
 	[ -n "$rootfs_data_max" ] && rootfs_data_max=$((rootfs_data_max))
+	# Device-specific cap, e.g. to keep the UBI bad-block reserve. Must be
+	# applied here (before rootfs_data is recreated) so that the sysupgrade
+	# configuration tarball stored in rootfs_data survives the upgrade.
+	if [ -n "$CI_ROOTFS_DATA_MAX" ]; then
+		rootfs_data_max="$CI_ROOTFS_DATA_MAX"
+	fi
 
 	local kernel_length="$3"
 	local has_env="${4:-0}"

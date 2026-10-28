@@ -243,9 +243,16 @@ platform_do_upgrade() {
 	huasifei,wh3000-pro-nand|\
 	huasifei,wh3000r-nand|\
 	jiorouter,ax6000-jidu6101|\
-	jiorouter,ax6000-jidu6j01|\
+	jiorouter,ax6000-jidu6j01)
+		CI_UBIPART="ubi"
+		nand_do_upgrade "$1"
+		;;
 	ruijie,rg-x30e-pro)
 		CI_UBIPART="ubi"
+		# 750 LEBs of 124 KiB; keeps the 19-PEB UBI bad-block reserve.
+		# Sizing rootfs_data here (instead of shrinking it in preinit) is
+		# what lets the sysupgrade config tarball survive the upgrade.
+		CI_ROOTFS_DATA_MAX=95232000
 		nand_do_upgrade "$1"
 		;;
 	cudy,re3000-v1|\
