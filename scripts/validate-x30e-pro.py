@@ -55,7 +55,14 @@ with tempfile.TemporaryDirectory() as tempdir:
     mac_script = image_file("etc/board.d/99_x30e-pro")
     assert b'mtd_get_mac_ascii product_info ethaddr' in mac_script
     assert b'ucidef_set_interface_macaddr "wan"' in mac_script
-    assert b'ucidef_set_interface_macaddr "lan"' not in mac_script
+    assert b'ucidef_set_interface_macaddr "lan"' in mac_script
+    assert b'macaddr_add "$label_mac" 1' in mac_script
+    wifi_mac = image_file("etc/hotplug.d/ieee80211/99-x30e-pro-wifi-mac")
+    assert b'mtd_get_mac_ascii product_info ethaddr' in wifi_mac
+    assert b'macaddr_add "$addr" 2' in wifi_mac
+    assert b'macaddr_add "$addr" 3' in wifi_mac
+    for lmo in ("base", "firewall", "package-manager"):
+        assert len(image_file(f"usr/lib/lua/luci/i18n/{lmo}.zh-cn.lmo")) > 1000
     resize_hook = image_file("lib/preinit/76_x30e_fix_ubi_reserve")
     assert b'local target=750' in resize_hook
     assert b'ubimkvol /dev/ubi0 -n 2 -N rootfs_data -S "$target"' in resize_hook

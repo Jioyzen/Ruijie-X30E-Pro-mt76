@@ -1,0 +1,18 @@
+#!/bin/sh
+# Derive the MT7981 Wi-Fi MACs from the product_info label MAC.
+[ "$ACTION" = "add" ] || exit 0
+
+PHYNBR=${DEVPATH##*/phy}
+[ -n "$PHYNBR" ] || exit 0
+
+. /lib/functions.sh
+. /lib/functions/system.sh
+
+[ "$(board_name)" = "ruijie,rg-x30e-pro" ] || exit 0
+
+addr="$(mtd_get_mac_ascii product_info ethaddr)"
+[ -n "$addr" ] || exit 0
+
+[ "$PHYNBR" = "0" ] && macaddr_add "$addr" 2 > /sys${DEVPATH}/macaddress
+[ "$PHYNBR" = "1" ] && macaddr_add "$addr" 3 > /sys${DEVPATH}/macaddress
+exit 0

@@ -10,11 +10,11 @@ A source build compiles the kernel, device tree, packages, and target images fro
 
 ## Device-specific behavior
 
-- The DTS describes the 128 MiB RAM, MT7981B, MT7531 switch, NAND partitions, three LAN ports (`lan1`–`lan3`), and the separate WAN port.
+- The DTS describes the 256 MiB RAM, MT7981B, MT7531 switch, NAND partitions, three LAN ports (`lan1`–`lan3`), and the separate WAN port.
 - Factory wireless calibration is read from this router's own read-only Factory partition through the device tree's NVMEM cells. No calibration dump or per-device backup is included in the repository or images.
 - For bridged AP forwarding, this device build carries the open ImmortalWrt/OpenWrt 6.12 bridge-flow-offload patch series from [PR #22533](https://github.com/openwrt/openwrt/pull/22533). It enables bridge netfilter on `br-lan`, adds bridge-aware flow construction for PPE, and omits `bridger` so the two bridge acceleration paths do not compete. This is an experimental, not-yet-merged upstream kernel change; verify PPE `BND` entries and throughput/CPU behavior on hardware before treating it as a stable release.
 - The factory UBI volume table reserves 750 LEBs for `rootfs_data`; a small preinit hook also repairs an oversized `rootfs_data` volume before it is mounted. This preserves the 19-PEB bad-block reserve verified on the device.
-- The image includes LuCI, Argon, Simplified Chinese translations, and SFTP support. The initial network configuration remains the upstream default for the board: LAN management at `192.168.1.1`, with the WAN separate.
+- The image includes LuCI, Argon, Simplified Chinese translations, and SFTP support. `CONFIG_LUCI_LANG_zh_Hans` is enabled explicitly in `config/x30e-pro.config`; without it `make defconfig` silently drops the `luci-i18n-*-zh-cn` packages and the UI falls back to English. The initial network configuration remains the upstream default for the board: LAN management at `192.168.1.1`, with the WAN separate. WAN/LAN MACs are derived from `product_info` (`ethaddr`, LAN = base+1) and the two Wi-Fi MACs from the same base (+2 for 2.4 GHz, +3 for 5 GHz), matching the stock firmware.
 - Factory and sysupgrade images are generated. The factory image is for the existing Web U-Boot's `openwrt-firmware-combined` layout; sysupgrade is for an already running X30E Pro ImmortalWrt system.
 
 ## Build locally
