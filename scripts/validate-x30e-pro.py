@@ -63,9 +63,15 @@ with tempfile.TemporaryDirectory() as tempdir:
     assert b'macaddr_add "$addr" 3' in wifi_mac
     for lmo in ("base", "firewall", "package-manager"):
         assert len(image_file(f"usr/lib/lua/luci/i18n/{lmo}.zh-cn.lmo")) > 1000
-    resize_hook = image_file("lib/preinit/76_x30e_fix_ubi_reserve")
-    assert b'local target=750' in resize_hook
-    assert b'ubimkvol /dev/ubi0 -n 2 -N rootfs_data -S "$target"' in resize_hook
+    # The destructive preinit rootfs_data "repair" hook was removed: the
+    # volume is sized correctly by platform.sh (CI_ROOTFS_DATA_MAX) and by
+    # the factory UBI volume table, so no boot-time ubirmvol is needed.
+    try:
+        image_file("lib/preinit/76_x30e_fix_ubi_reserve")
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        raise AssertionError("76_x30e_fix_ubi_reserve must not be shipped")
     ui_defaults = image_file("etc/uci-defaults/99-x30e-pro-ui")
     assert b"/luci-static/argon" in ui_defaults and b"zh_cn" in ui_defaults
     bridge_hook = image_file("etc/hotplug.d/iface/99-x30e-bridge-netfilter")

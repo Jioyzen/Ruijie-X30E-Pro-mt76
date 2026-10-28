@@ -17,7 +17,7 @@ Based on MediaTek SDK patch by chak-kei.lam <chak-kei.lam@mediatek.com>.
 Signed-off-by: Ryan Chen <rchen14b@gmail.com>
 ---
  net/netfilter/nft_flow_offload.c | 31 +++++++++++++++++++++++++++++--
- 1 file changed, 29 insertions(+), 2 deletions(-)
+ 1 file changed, 27 insertions(+), 2 deletions(-)
 
 --- a/net/netfilter/nft_flow_offload.c
 +++ b/net/netfilter/nft_flow_offload.c
@@ -52,15 +52,13 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  static void nft_dev_path_info(const struct net_device_path_stack *stack,
  			      struct nft_forward_info *info,
  			      unsigned char *ha, struct nf_flowtable *flowtable)
-@@ -290,8 +314,12 @@ static int nft_dev_forward_path(const st
+@@ -290,8 +314,10 @@ static int nft_dev_forward_path(const st
  		nft_br_vlan_dev_fill_forward_path(pkt, &ctx);
  	}
  
 -	if (nft_dev_fill_forward_path(&ctx, route, dst, ct, dir, ha, &stack) >= 0)
 +	if (nft_dev_fill_forward_path(&ctx, route, dst, ct, dir, ha, &stack) >= 0) {
-+		/* Add VLAN pass through info if needed */
 +		nft_fill_vlan_passthrough_info(pkt, &info);
-+
  		nft_dev_path_info(&stack, &info, ha, &ft->data);
 +	}
  

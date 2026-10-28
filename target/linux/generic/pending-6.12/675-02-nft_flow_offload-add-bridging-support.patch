@@ -20,23 +20,24 @@ Adapted for Airoha AN7581 PPE offload.
 
 Signed-off-by: Ryan Chen <rchen14b@gmail.com>
 ---
- net/netfilter/nft_flow_offload.c | 220 +++++++++++++++++++++++++++----
- 1 file changed, 196 insertions(+), 24 deletions(-)
+ net/netfilter/nft_flow_offload.c | 221 +++++++++++++++++++++++++++----
+ 1 file changed, 197 insertions(+), 24 deletions(-)
 
 --- a/net/netfilter/nft_flow_offload.c
 +++ b/net/netfilter/nft_flow_offload.c
-@@ -15,6 +15,7 @@
+@@ -15,6 +15,8 @@
  #include <net/netfilter/nf_conntrack_core.h>
  #include <net/netfilter/nf_conntrack_extend.h>
  #include <net/netfilter/nf_flow_table.h>
 +#include "../bridge/br_private.h"
++#include <linux/if_ether.h>
  
  struct nft_flow_offload {
  	struct nft_flowtable	*flowtable;
-@@ -46,7 +47,48 @@ static bool nft_is_valid_ether_device(co
+@@ -46,7 +48,53 @@ static bool nft_is_valid_ether_device(co
  	return true;
  }
- 
+
 -static int nft_dev_fill_forward_path(const struct nf_flow_route *route,
 +static u16 nft_flow_offload_get_vlan_id(struct net_bridge_port *port,
 +					struct sk_buff *skb)
@@ -57,12 +58,17 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
 +static bool nft_flow_offload_is_bridging(struct sk_buff *skb)
 +{
 +	struct net_bridge_port *port;
-+	unsigned char *dmac = eth_hdr(skb)->h_dest;
++	unsigned char *dmac;
 +	bool bridging = false;
 +	u16 vlan_id;
 +
 +	if (!netif_is_bridge_port(skb->dev))
 +		return false;
++	if (!skb_mac_header_was_set(skb))
++		return false;
++	if (!pskb_may_pull(skb, ETH_HLEN))
++		return false;
++	dmac = eth_hdr(skb)->h_dest;
 +
 +	rcu_read_lock();
 +	port = br_port_get_rcu(skb->dev);
@@ -83,7 +89,7 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  				     const struct dst_entry *dst_cache,
  				     const struct nf_conn *ct,
  				     enum ip_conntrack_dir dir, u8 *ha,
-@@ -60,6 +102,9 @@ static int nft_dev_fill_forward_path(con
+@@ -60,6 +107,9 @@ static int nft_dev_fill_forward_path(con
  	if (!nft_is_valid_ether_device(dev))
  		goto out;
  
@@ -93,7 +99,7 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  	n = dst_neigh_lookup(dst_cache, daddr);
  	if (!n)
  		return -1;
-@@ -74,7 +119,26 @@ static int nft_dev_fill_forward_path(con
+@@ -74,7 +124,26 @@ static int nft_dev_fill_forward_path(con
  		return -1;
  
  out:
@@ -121,7 +127,7 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  }
  
  struct nft_forward_info {
-@@ -103,12 +167,12 @@ static void nft_dev_path_info(const stru
+@@ -103,12 +172,12 @@ static void nft_dev_path_info(const stru
  
  	for (i = 0; i < stack->num_paths; i++) {
  		path = &stack->path[i];
@@ -135,7 +141,7 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  			if (is_zero_ether_addr(info->h_source))
  				memcpy(info->h_source, path->dev->dev_addr, ETH_ALEN);
  
-@@ -150,10 +214,8 @@ static void nft_dev_path_info(const stru
+@@ -150,10 +219,8 @@ static void nft_dev_path_info(const stru
  				info->num_encaps++;
  				break;
  			case DEV_PATH_BR_VLAN_UNTAG:
@@ -148,7 +154,7 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  				break;
  			case DEV_PATH_BR_VLAN_KEEP:
  				break;
-@@ -161,7 +223,6 @@ static void nft_dev_path_info(const stru
+@@ -161,7 +228,6 @@ static void nft_dev_path_info(const stru
  			info->xmit_type = FLOW_OFFLOAD_XMIT_DIRECT;
  			break;
  		default:
@@ -156,15 +162,16 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  			break;
  		}
  	}
-@@ -192,22 +253,44 @@ static bool nft_flowtable_find_dev(const
+@@ -192,22 +258,45 @@ static bool nft_flowtable_find_dev(const
  	return found;
  }
- 
+
 -static void nft_dev_forward_path(struct nf_flow_route *route,
 -				 const struct nf_conn *ct,
 -				 enum ip_conntrack_dir dir,
 -				 struct nft_flowtable *ft)
 +static int nft_dev_forward_path(const struct nft_pktinfo *pkt,
++				bool is_bridging,
 +				struct nf_flow_route *route,
 +				const struct nf_conn *ct,
 +				enum ip_conntrack_dir dir,
@@ -180,11 +187,11 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
 +	enum ip_conntrack_dir skb_dir;
  	unsigned char ha[ETH_ALEN];
  	int i;
- 
+
 -	if (nft_dev_fill_forward_path(route, dst, ct, dir, ha, &stack) >= 0)
 +	memset(ha, 0, sizeof(ha));
 +
-+	if (nft_flow_offload_is_bridging(pkt->skb) && skb_mac_header_was_set(pkt->skb)) {
++	if (is_bridging) {
 +		eth = eth_hdr(pkt->skb);
 +		skb_dir = CTINFO2DIR(skb_get_nfct(pkt->skb) & NFCT_INFOMASK);
 +		if (skb_dir != dir) {
@@ -207,7 +214,7 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  
  	route->tuple[!dir].in.ifindex = info.indev->ifindex;
  	for (i = 0; i < info.num_encaps; i++) {
-@@ -224,13 +307,15 @@ static void nft_dev_forward_path(struct
+@@ -224,13 +313,15 @@ static void nft_dev_forward_path(struct
  		route->tuple[dir].out.hw_ifindex = info.hw_outdev->ifindex;
  		route->tuple[dir].xmit_type = info.xmit_type;
  	}
@@ -228,15 +235,15 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  {
  	struct dst_entry *this_dst = skb_dst(pkt->skb);
  	struct dst_entry *other_dst = NULL;
-@@ -270,13 +355,89 @@ static int nft_flow_route(const struct n
+@@ -270,13 +361,89 @@ static int nft_flow_route(const struct n
  	nft_default_forward_path(route, this_dst, dir);
  	nft_default_forward_path(route, other_dst, !dir);
- 
+
 -	if (route->tuple[dir].xmit_type	== FLOW_OFFLOAD_XMIT_NEIGH &&
 +	if (route->tuple[dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH &&
 +	    route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH) {
-+		if (nft_dev_forward_path(pkt, route, ct, dir, ft) ||
-+		    nft_dev_forward_path(pkt, route, ct, !dir, ft))
++		if (nft_dev_forward_path(pkt, false, route, ct, dir, ft) ||
++		    nft_dev_forward_path(pkt, false, route, ct, !dir, ft))
 +			return -ENOENT;
 +	}
 +
@@ -304,8 +311,8 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  	    route->tuple[!dir].xmit_type == FLOW_OFFLOAD_XMIT_NEIGH) {
 -		nft_dev_forward_path(route, ct, dir, ft);
 -		nft_dev_forward_path(route, ct, !dir, ft);
-+		if (nft_dev_forward_path(pkt, route, ct, dir, ft) ||
-+		    nft_dev_forward_path(pkt, route, ct, !dir, ft)) {
++		if (nft_dev_forward_path(pkt, true, route, ct, dir, ft) ||
++		    nft_dev_forward_path(pkt, true, route, ct, !dir, ft)) {
 +			ret = -ENOENT;
 +			goto err_route_dir2;
 +		}
@@ -321,7 +328,7 @@ Signed-off-by: Ryan Chen <rchen14b@gmail.com>
  }
  
  static bool nft_flow_offload_skip(struct sk_buff *skb, int family)
-@@ -364,8 +525,13 @@ static void nft_flow_offload_eval(const
+@@ -364,8 +531,13 @@ static void nft_flow_offload_eval(const
  		goto out;
  
  	dir = CTINFO2DIR(ctinfo);

@@ -2,5 +2,16 @@
 # Use official-repository Argon and Simplified Chinese by default.
 uci -q set luci.main.mediaurlbase='/luci-static/argon'
 uci -q set luci.main.lang='zh_cn'
+
+# Production-safe defaults: require a password on the serial console and keep
+# a larger in-RAM log ring for post-mortem analysis.
+uci -q set system.@system[0].ttylogin='1'
+uci -q set system.@system[0].log_size='512'
+
+# Do not override upstream DNS TTLs for a full hour.
+uci -q set dhcp.@dnsmasq[0].min_cache_ttl='300'
+
 uci -q commit luci
+uci -q commit system
+uci -q commit dhcp
 exit 0
