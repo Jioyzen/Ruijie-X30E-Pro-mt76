@@ -43,6 +43,10 @@ Resolve any conflicts as ordinary source changes, run the local build and checks
 
 ## GitHub Actions
 
-`.github/workflows/build.yml` builds on pushes to `openwrt-25.12`, on demand, and weekly. A scheduled run merges ImmortalWrt `openwrt-25.12` before building; a manual run offers the same option. A merge conflict stops the job without overwriting the local adaptation. Successful runs upload factory/sysupgrade images, the manifest, checksums, and validation report as a 30-day Actions artifact. For a manual run, enable **Publish the successful build as a GitHub Release** to also create a versioned GitHub Release with those files attached. Release publishing is opt-in; push and scheduled builds only upload artifacts.
+`.github/workflows/build.yml` builds on pushes to `openwrt-25.12`, on demand, and **daily**. A scheduled run merges ImmortalWrt `openwrt-25.12` before building; a manual run offers the same option. A merge conflict stops the job without overwriting the local adaptation. Successful runs upload factory/sysupgrade images, the manifest, checksums, and validation report as a 30-day Actions artifact.
+
+Every successful build also **auto-publishes a rolling GitHub Release tagged `x30e-pro-latest`**: the factory/sysupgrade images, validation report, manifest and `sha256sums` are replaced with the newest build, so there is a stable download URL without release spam. A manual run with **Publish the successful build as a GitHub Release** additionally creates an immutable versioned release (`x30e-pro-build-<run>-<sha>`).
+
+This repository is a standalone GitHub repository, **not a fork**, so the GitHub UI has no "Sync fork" button. The workflow keeps an `upstream` remote to `immortalwrt/immortalwrt` and merges `openwrt-25.12` automatically on the daily schedule (and on manual dispatch with *merge upstream* enabled), then pushes the merge; the resulting push triggers a normal build. Upstream changes therefore arrive without manual work, and conflicts fail the job without overwriting the branch.
 
 The Actions build is a convenience and independent build check. Local source builds remain the primary validation path for this device. An offline image check cannot replace a hardware boot test.

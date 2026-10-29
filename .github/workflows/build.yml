@@ -16,7 +16,7 @@ name: X30E Pro source build
         required: true
         default: false
   schedule:
-    - cron: '0 3 * * 0'
+    - cron: '0 3 * * *'
 
 permissions:
   contents: write
@@ -74,7 +74,7 @@ jobs:
             bin/targets/mediatek/filogic/sha256sums
 
       - name: Publish GitHub Release
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        if: success()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -94,9 +94,29 @@ jobs:
 
           source_sha="$(git rev-parse HEAD)"
           short_sha="${source_sha:0:7}"
-          tag="x30e-pro-build-${GITHUB_RUN_NUMBER}-${short_sha}"
-          gh release create "$tag" "${files[@]}" \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$source_sha" \
-            --title "Ruijie X30E Pro ImmortalWrt build ${GITHUB_RUN_NUMBER}" \
-            --generate-notes
+          notes="Automated build ${GITHUB_RUN_NUMBER} from ${source_sha}."
+
+          # Optional immutable, versioned release for a manual run.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.publish_release }}" = "true" ]; then
+            tag="x30e-pro-build-${GITHUB_RUN_NUMBER}-${short_sha}"
+            gh release create "$tag" "${files[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$source_sha" \
+              --title "Ruijie X30E Pro ImmortalWrt build ${GITHUB_RUN_NUMBER} (${short_sha})" \
+              --notes "$notes"
+          fi
+
+          # Rolling release: every successful build replaces these assets.
+          tag="x30e-pro-latest"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" \
+              --title "Ruijie X30E Pro ImmortalWrt (latest)" \
+              --notes "$notes" --latest
+          else
+            gh release create "$tag" "${files[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$source_sha" \
+              --title "Ruijie X30E Pro ImmortalWrt (latest)" \
+              --notes "$notes" --latest
+          fi
