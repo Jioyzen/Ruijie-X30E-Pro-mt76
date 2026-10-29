@@ -166,8 +166,8 @@ git merge FETCH_HEAD
 
 - **无风扇、无有效温控绑定**：`pwm-fan` disabled，CPU 固定 1.3 GHz，仅 125 °C critical 关机；高温环境请保证散热并监控温度。
 - **恢复出厂 = 空 root 密码 + 开放 WiFi + 192.168.1.1**：生产设备请先配置并保留备份。
-- **默认 WPA2**：建议改为 WPA3/SAE + PMF，使用 20+ 位随机 PSK。
-- **5G 160 MHz**：默认 ch48/HE160 会覆盖 DFS 信道（52–64），雷达事件可能触发切信道；覆盖优先可改 HE80。
+- **无线加密**：镜像默认 WiFi 是开放网络（OpenWrt 默认）；部署时请改为 WPA2 或 WPA3-SAE + PMF，使用 20+ 位随机 PSK。
+- **5G 160 MHz**：若使用 ch48/HE160（覆盖 DFS 52–64），雷达事件可能触发切信道；覆盖优先可改 HE80。
 - **内核 6.12.112**：如升级请直接 6.12.114，**跳过 6.12.113**（其 offload ct-timeout 改动会导致 WED 卸载流约 300 s 断流）。
 - **包体偏大**：包含 PPP/odhcp6c/safexcel/fullcone 等当前未使用的包；重建时可裁剪。
 - **无持久化日志**：logd 为 RAM 环（512 KB），重启即失；需要审计时接远程 syslog。
